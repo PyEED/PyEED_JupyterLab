@@ -1,2 +1,0 @@
-chromatopy @ git+https://github.com/FAIRChemistry/chromatopy
-MTPHandler @ git+https://github.com/FAIRChemistry/MTPHandler.git

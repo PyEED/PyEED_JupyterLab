@@ -1,1 +1,2 @@
 chromatopy @ git+https://github.com/FAIRChemistry/chromatopy.git
+tqdm

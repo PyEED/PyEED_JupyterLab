@@ -1,2 +1,1 @@
 chromatopy @ git+https://github.com/FAIRChemistry/chromatopy.git
-pyenzyme==1.1.4

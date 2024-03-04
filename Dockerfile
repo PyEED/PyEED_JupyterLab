@@ -1,5 +1,8 @@
 FROM jupyter/datascience-notebook
 
-# Install packages
-RUN pip install --upgrade pip
-RUN pip install git+https://github.com/FAIRChemistry/chromatopy.git
+# Copy the scripts into the container and set them as executable in one step
+COPY --chmod=+x startup-script.sh /usr/local/bin/startup-script.sh
+COPY --chmod=+x update_packages.py /usr/local/bin/update_packages.py
+
+# Use the custom startup script as the entrypoint
+ENTRYPOINT ["/usr/local/bin/startup-script.sh"]

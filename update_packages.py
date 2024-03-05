@@ -1,23 +1,117 @@
 import subprocess
-import pkg_resources
-from pkg_resources import DistributionNotFound, VersionConflict
+import requests
+import toml
+import re
+import importlib.metadata
 
 
-def install_package(requirement):
-    """Install or reinstall the package with the specified version if necessary."""
+def extract_git_url(line):
+    """Extracts a git URL and optional branch name from a line."""
+    match = re.search(r"https://github\.com/([^/@]+/[^/@]+)(?:@([^#]+))?", line)
+    if match:
+        repo, branch = match.groups()
+        branch = branch or "main"  # Default to 'main' if branch is not specified
+        print(repo, branch)
+        return f"https://github.com/{repo}", branch
+
+
+def get_pyproject_toml_url(git_url, branch="main"):
+    """Constructs the URL to the raw pyproject.toml file."""
+    repo_path = git_url.replace("https://github.com/", "")
+    repo_path = repo_path.replace(".git", "")
+    return f"https://raw.githubusercontent.com/{repo_path}/{branch}/pyproject.toml"
+
+
+def compare_installed_packages(package_name, version):
+    """Compares listed packages and their versions with the ones installed in the current environment."""
     try:
-        # Check if the requirement is met
-        pkg_resources.require(requirement)
-        print(f"{requirement} is already installed and meets the requirement.")
-    except (DistributionNotFound, VersionConflict):
-        # Requirement is not met, install or reinstall the package
-        print(f"Installing or updating {requirement}.")
-        subprocess.run(["pip", "install", "--force-reinstall", requirement], check=True)
+        installed_version = importlib.metadata.version(package_name)
+        if installed_version == version:
+            print(
+                f"{package_name} local=={version} remote=={installed_version} - No update needed"
+            )
+            return False
+
+        else:
+            print(
+                f"{package_name} local=={version} remote=={installed_version} - Update needed"
+            )
+            return True
+    except importlib.metadata.PackageNotFoundError:
+        print(f"{package_name} is not installed")
+        return True
+
+
+def get_version_from_git_url(line):
+    """Extracts and returns the version number from a pyproject.toml given a line with a GitHub repository URL."""
+    git_url, branch = extract_git_url(line)
+    if git_url:
+        pyproject_toml_url = get_pyproject_toml_url(git_url, branch)
+        print("url is:", pyproject_toml_url)
+        response = requests.get(pyproject_toml_url)
+        if response.status_code == 200:
+            try:
+                pyproject_content = toml.loads(response.text)
+                package_name = pyproject_content["tool"]["poetry"]["name"]
+                version = pyproject_content["tool"]["poetry"]["version"]
+                print(f"Found version {version} for {package_name} in pyproject.toml")
+                return package_name, version, git_url, branch
+            except KeyError:
+                print(f"Version information not found in pyproject.toml for {git_url}")
+        else:
+            print(
+                f"Failed to fetch pyproject.toml from {git_url}: HTTP {response.status_code}"
+            )
+    else:
+        print(f"Invalid git URL: {line}")
+
+
+def install_package(package_name, version=None, git_url=None, branch="main"):
+    # Determine if it's a pip package or a git repository
+    is_pip = git_url is None
+
+    install_command = ["pip", "install", "-q", "--force-reinstall"]
+
+    if is_pip:
+        # For PyPI packages
+        print(f"Installing {package_name}=={version} from PyPI...")
+        package_spec = f"{package_name}=={version}" if version else package_name
+        install_command.append(package_spec)
+    else:
+        # For Git repositories
+        print(
+            f"Installing {package_name}=={version} from {git_url} on branch {branch}..."
+        )
+        branch_spec = f"#branch={branch}" if branch else ""
+        if ".git" not in git_url:
+            git_url = f"{git_url}.git"
+        git_install_url = f"git+{git_url}{branch_spec}"
+        install_command.append(git_install_url)
+
+    # Execute the install command
+    subprocess.run(install_command, check=True)
+
+
+def process_requirements_file(requirements_path):
+    print(f"checking for updates in {requirements_path}")
+    """Processes a requirements.txt file to print version numbers for git repositories."""
+    with open(requirements_path, "r") as file:
+        for line in file:
+            if not line.strip():
+                continue
+            line = line.strip()
+            if "==" in line:
+                package_name, version = line.split("==")
+                git_url = None
+                branch = None
+            else:
+                package_name, version, git_url, branch = get_version_from_git_url(line)
+
+            reinstall = compare_installed_packages(package_name, version)
+
+            if reinstall:
+                install_package(package_name, version, git_url, branch)
 
 
 if __name__ == "__main__":
-    with open("/tmp/requirements.txt", "r") as file:
-        for line in file:
-            line = line.strip()
-            if line and not line.startswith("#"):  # Ignore empty lines and comments
-                install_package(line)
+    process_requirements_file("/tmp/requirements.txt")

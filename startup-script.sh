@@ -4,8 +4,6 @@
 echo "Downloading latest requirements.txt from GitHub..."
 curl -o /tmp/requirements.txt -L https://raw.githubusercontent.com/EnzymeML/EnzymeML_JupyterLab/main/requirements.txt
 
-
-
 # Update packages based on requirements.txt
 echo "Checking for package updates..."
 python /usr/local/bin/update_packages.py

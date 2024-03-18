@@ -4,6 +4,12 @@ FROM jupyter/datascience-notebook
 COPY --chmod=+x startup-script.sh /usr/local/bin/startup-script.sh
 COPY --chmod=+x update_packages.py /usr/local/bin/update_packages.py
 
+USER root
+
+RUN apt-get update \
+    && apt-get -y install libpq-dev gcc python3-dev\
+    && pip install psycopg2
+
 RUN pip install --upgrade pip \
     && pip install toml
 

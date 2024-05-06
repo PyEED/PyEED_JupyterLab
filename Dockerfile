@@ -11,6 +11,9 @@ RUN apt-get update \
     && pip install psycopg2
 
 RUN pip install --upgrade pip \
+    && pip install --upgrade h5py \
+    && pip install --upgrade wheel \
+    && pip install --upgrade typing-extensions \
     && pip install toml
 
 # Use the custom startup script as the entrypoint

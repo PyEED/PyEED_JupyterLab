@@ -1,1 +1,1 @@
-pyeed @ git+https://github.com/PyEED/pyeed.git
+pyeed @ git+https://github.com/PyEED/pyeed:@refactor_sequenceNetwork-55

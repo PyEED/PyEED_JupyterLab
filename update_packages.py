@@ -110,7 +110,7 @@ def process_requirements_file(requirements_path):
             reinstall = compare_installed_packages(package_name, version)
 
             if reinstall:
-                install_package(package_name, version, git_url, branch)
+                install_package(package_name, version, git_url, branch=branch)
 
 
 if __name__ == "__main__":

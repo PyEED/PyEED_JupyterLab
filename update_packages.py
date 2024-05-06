@@ -7,7 +7,10 @@ import importlib.metadata
 
 def extract_git_url(line):
     """Extracts a git URL and optional branch name from a line."""
+    print(line)
     match = re.search(r"https://github\.com/([^/@]+/[^/@]+)(?:@([^#]+))?", line)
+    print(match)
+    print(match.groups())
     if match:
         repo, branch = match.groups()
         branch = branch or "main"  # Default to 'main' if branch is not specified
@@ -97,6 +100,7 @@ def process_requirements_file(requirements_path):
     """Processes a requirements.txt file to print version numbers for git repositories."""
     with open(requirements_path, "r") as file:
         for line in file:
+            print('line is:', line)
             if not line.strip():
                 continue
             line = line.strip()
@@ -106,6 +110,7 @@ def process_requirements_file(requirements_path):
                 branch = None
             else:
                 package_name, version, git_url, branch = get_version_from_git_url(line)
+                print('package_name:', package_name, 'version:', version, 'git_url:', git_url, 'branch:', branch)
 
             reinstall = compare_installed_packages(package_name, version)
 

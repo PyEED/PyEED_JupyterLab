@@ -36,8 +36,7 @@ def get_pyproject_toml_url(git_url, branch="main"):
     repo_path = repo_path.replace(".git", "")
     # careful might brake if the branch name is not issue
     # check if a number is in the branch name, and add before the number present %23
-    if any(char.isdigit() for char in branch):
-        branch = add_prefix_to_numbers(branch)
+    branch = add_prefix_to_numbers(branch)
         
     return f"https://raw.githubusercontent.com/{repo_path}/{branch}/pyproject.toml"
 
@@ -100,7 +99,7 @@ def install_package(package_name, version=None, git_url=None, branch="main"):
     else:
         # For Git repositories
         print(
-            f"Installing {package_name}=={version} from {git_url} on branch {branch}..."
+            f"Installing {package_name}=={version} from {git_url} on branch {branch} ..."
         )
         branch_spec = f"@{branch}" if branch else ""
         if ".git" not in git_url:

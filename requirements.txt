@@ -1,1 +1,1 @@
-pyeed @ git+https://github.com/PyEED/pyeed.git@refactor_sequenceNetwork-55
+pyeed @ git+https://github.com/PyEED/pyeed.git@tempoary-version

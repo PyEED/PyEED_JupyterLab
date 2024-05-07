@@ -17,7 +17,18 @@ def extract_git_url(line):
         print(repo, branch)
         return f"https://github.com/{repo}", branch
 
-
+def add_prefix_to_numbers(input_string):
+    # Regular expression to find numbers
+    pattern = r'\d+'
+    
+    # Function to add "%23" before each number
+    def add_prefix(match):
+        return f"%23{match.group(0)}"
+    
+    # Replace each number in the string with "%23" followed by the number
+    modified_string = re.sub(pattern, add_prefix, input_string)
+    
+    return modified_string
 
 def get_pyproject_toml_url(git_url, branch="main"):
     """Constructs the URL to the raw pyproject.toml file."""
@@ -25,6 +36,8 @@ def get_pyproject_toml_url(git_url, branch="main"):
     repo_path = repo_path.replace(".git", "")
     # careful might brake if the branch name is not issue
     # check if a number is in the branch name, and add before the number present %23
+    if any(char.isdigit() for char in branch):
+        branch = add_prefix_to_numbers(branch)
         
     return f"https://raw.githubusercontent.com/{repo_path}/{branch}/pyproject.toml"
 

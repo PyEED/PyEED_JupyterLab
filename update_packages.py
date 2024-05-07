@@ -85,10 +85,11 @@ def install_package(package_name, version=None, git_url=None, branch="main"):
         print(
             f"Installing {package_name}=={version} from {git_url} on branch {branch}..."
         )
-        branch_spec = f"#branch={branch}" if branch else ""
+        branch_spec = f"@{branch}" if branch else ""
         if ".git" not in git_url:
             git_url = f"{git_url}.git"
         git_install_url = f"git+{git_url}{branch_spec}"
+        print('git_install_url:', git_install_url)
         install_command.append(git_install_url)
 
     # Execute the install command

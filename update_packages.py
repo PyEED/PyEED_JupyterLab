@@ -18,10 +18,14 @@ def extract_git_url(line):
         return f"https://github.com/{repo}", branch
 
 
+
 def get_pyproject_toml_url(git_url, branch="main"):
     """Constructs the URL to the raw pyproject.toml file."""
     repo_path = git_url.replace("https://github.com/", "")
     repo_path = repo_path.replace(".git", "")
+    # careful might brake if the branch name is not issue
+    # check if a number is in the branch name, and add before the number present %23
+        
     return f"https://raw.githubusercontent.com/{repo_path}/{branch}/pyproject.toml"
 
 

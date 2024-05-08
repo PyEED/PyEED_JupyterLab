@@ -9,8 +9,7 @@ services:
 
   cytoscape-desktop:
     image: cytoscape/cytoscape-desktop:3.10.1
-    ports:
-      - '${NOVNC_PORT}:${NOVNC_PORT}'
+    container_name: cytoscape
     environment:
       - XVFB_SCREEN_WIDTH=${NOVNC_SCREEN_WIDTH}
       - XVFB_SCREEN_HEIGHT=${NOVNC_SCREEN_HEIGHT}

@@ -26,8 +26,8 @@ jobs:
         with:
           images: haeussma/pyeed-notebook
 
-      - name: Build and pull Docker
-        run: docker-compose build --pull
+      - name: Build
+        run: docker-compose build
 
       - name: Push Docker Compose
         run: docker-compose push

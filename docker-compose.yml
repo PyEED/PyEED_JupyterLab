@@ -1,9 +1,7 @@
 version: "2.2"
 services:
   juypter:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: haeussma/pyeed-notebook:latest
     container_name: pyeed
     ports:
       - '${JUPYTER_PORT}:${JUPYTER_PORT}'

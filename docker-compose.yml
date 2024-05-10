@@ -3,8 +3,6 @@ services:
   juypter:
     image: haeussma/pyeed-notebook:latest
     container_name: pyeed
-    build:
-      dockerfile: ./Dockerfile
     ports:
       - '${JUPYTER_PORT}:${JUPYTER_PORT}'
 

@@ -1,1 +1,1 @@
-pyeed @ git+https://github.com/PyEED/pyeed.git@docker-stable-network
+pyeed @ git+https://github.com/PyEED/pyeed.git@ontology-dm

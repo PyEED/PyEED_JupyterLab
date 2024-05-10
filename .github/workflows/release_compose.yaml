@@ -1,9 +1,8 @@
 name: Publish Docker Compose
 
 on:
-  push:
-    branches:
-      - fixing-docker-new-pyeed
+  release:
+    types: [published]
   
 
 jobs:
@@ -26,8 +25,3 @@ jobs:
         with:
           images: haeussma/pyeed-notebook
 
-      - name: Build
-        run: docker-compose build
-
-      - name: Push Docker Compose
-        run: docker-compose push

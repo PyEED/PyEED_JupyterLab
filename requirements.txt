@@ -1,1 +1,1 @@
-pyeed @ git+https://github.com/PyEED/pyeed.git@tempoary-version
+pyeed @ git+https://github.com/PyEED/pyeed.git@ontology-dm

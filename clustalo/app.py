@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile
 app = FastAPI()
 
 
-@app.get("/clustalo/help")
+@app.get("/help")
 def clustalo_help():
     print("Received request for help")
     try:
@@ -20,7 +20,7 @@ def clustalo_help():
         return {"error": "Command failed", "stderr": e.stderr}, 400
 
 
-@app.post("/clustalo/align")
+@app.post("/align")
 def align(file: UploadFile):
     path = f"/app/data/{file.filename}"
     with open(path, "wb") as f:

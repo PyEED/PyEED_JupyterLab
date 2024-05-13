@@ -1,8 +1,10 @@
 version: "2.2"
 services:
-  juypter:
+  jupyter-lab:
+    build:
+      context: jupyterlab/
     image: haeussma/pyeed-notebook:latest
-    container_name: pyeed
+    container_name: jupyterlab
     ports:
       - '${JUPYTER_PORT}:${JUPYTER_PORT}'
 

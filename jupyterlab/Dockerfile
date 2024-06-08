@@ -1,8 +1,8 @@
 FROM jupyter/datascience-notebook
 
 # Copy the scripts into the container and set them as executable in one step
-COPY --chmod=+x /jupyterlab/startup-script.sh /usr/local/bin/startup-script.sh
-COPY --chmod=+x /jupyterlab/update_packages.py /usr/local/bin/update_packages.py
+COPY --chmod=+x startup-script.sh /usr/local/bin/startup-script.sh
+COPY --chmod=+x update_packages.py /usr/local/bin/update_packages.py
 
 USER root
 

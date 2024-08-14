@@ -4,36 +4,43 @@ import subprocess
 import os
 import uuid
 from typing import Optional
+import logging
 
 app = FastAPI()
-
-## IN AND OUT DATA MODELS -------------
+logger = logging.getLogger(__name__)
 
 class BlastRequest(BaseModel):
     tool: str
     query: str
     db: str
-    evalue: Optional[str] = '0.001'
-    outfmt: Optional[str] = '6'
+    evalue: str
+    outfmt: str
+
 
 ## ENDPOINTS --------------------------
 
-@app.post("/run_blast", response_model=dict)
-async def run_blast(request: BlastRequest):
-    query_filename = f"/app/data/{uuid.uuid4()}.fasta"
-    result_filename = f"/app/data/{uuid.uuid4()}.out"
+def create_fastas_file_from_seq(seq, filename):
+    with open(filename, 'w') as file:
+        file.write(f">seq\n{seq}\n")
 
-    # Save the query to a file
-    with open(query_filename, 'w') as query_file:
-        query_file.write(request.query)
+# this get json params
+@app.post("/run_blast")
+async def run_blast(request: Request):
+    request = await request.json()
+
+    query_filename = f"in.fasta"
+    result_filename = f"out.out"
+
+    # Create the FASTA file
+    create_fastas_file_from_seq(request['query'], query_filename)
 
     # Run the BLAST command
     command = [
-        request.tool,
+        request['tool'],
         '-query', query_filename,
-        '-db', request.db,
-        '-evalue', request.evalue,
-        '-outfmt', request.outfmt,
+        '-db', request['db'],
+        '-evalue', request['evalue'],
+        '-outfmt', request['outfmt'],
         '-out', result_filename
     ]
 
@@ -46,7 +53,7 @@ async def run_blast(request: BlastRequest):
     with open(result_filename, 'r') as file:
         result = file.read()
 
-    return {"result": result}
+    return result
 
 
 

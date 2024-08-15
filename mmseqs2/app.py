@@ -19,6 +19,32 @@ class MMSeqsParams(BaseModel):
 # Dictionary to keep track of running jobs and results
 job_results = {}
 
+def create_fastas_file_from_seq(seq, filename):
+    with open(filename, 'w') as file:
+        file.write(f">seq\n{seq}\n")
+
+def create_queryDB_from_seq(filename):
+    # this will create a db from a single sequence file
+    # the command is mmseqs createdb <input> <output>
+    # the output should be a file with the same name as the input but with the extension .db
+
+    command = [
+        "mmseqs", "createdb",
+        filename,
+        filename.replace('fasta', '') + ".db"
+    ]
+
+    try:
+        subprocess.run(command, check=True)
+    
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=600, detail=str(e))
+    
+
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the MMSeqs2 API!"}
+
 @app.post("/run_mmseqs")
 async def run_mmseqs(params: MMSeqsParams):
     # Create a unique job id
@@ -32,10 +58,16 @@ async def run_mmseqs(params: MMSeqsParams):
     result_m8_path = os.path.join(output_dir, "result.m8")
     result_tsv_path = os.path.join(output_dir, "result.tsv")
 
+    # Create the FASTA file
+    path_query = os.path.join(output_dir, "query.fasta")
+    path_queryDB = path_query.replace('fasta', '') + ".db"
+    create_fastas_file_from_seq(params.query, path_query)
+    create_queryDB_from_seq(path_query)
+
     # Run the mmseqs2 search command
     command = [
         "mmseqs", "search", 
-        params.query, 
+        path_queryDB, 
         params.database, 
         os.path.join(output_dir, "result"), 
         output_dir, 
@@ -49,6 +81,7 @@ async def run_mmseqs(params: MMSeqsParams):
 
         # Convert the results to BLAST+ format if requested
         if params.blast_format:
+            # mmseqs convertalis queryDB targetDB resultDB resultDB.m8
             # Convert to BLAST tabular format (BLAST m8 format)
             convert_command = [
                 "mmseqs", "convertalis", 
@@ -97,4 +130,5 @@ async def get_results(job_id: str):
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=6001, reload=True)
+    
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

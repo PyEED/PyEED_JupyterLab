@@ -23,6 +23,10 @@ def create_fastas_file_from_seq(seq, filename):
     with open(filename, 'w') as file:
         file.write(f">seq\n{seq}\n")
 
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the BLAST API!"}
+
 # this get json params
 @app.post("/run_blast")
 async def run_blast(request: Request):

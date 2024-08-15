@@ -30,6 +30,8 @@ async def run_blast(request: Request):
 
     query_filename = f"in.fasta"
     result_filename = f"out.out"
+    # create empty file
+    open(result_filename, 'w').close()
 
     # Create the FASTA file
     create_fastas_file_from_seq(request['query'], query_filename)
@@ -44,6 +46,8 @@ async def run_blast(request: Request):
         '-num_threads', request['num_threads'],
         '-out', result_filename
     ]
+
+    logger.info(f"Running command: {' '.join(command)}")
 
     try:
         subprocess.run(command, check=True)

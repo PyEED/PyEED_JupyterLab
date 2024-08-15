@@ -41,6 +41,7 @@ async def run_blast(request: Request):
         '-db', request['db'],
         '-evalue', request['evalue'],
         '-outfmt', request['outfmt'],
+        '-num_threads', request['num_threads'],
         '-out', result_filename
     ]
 

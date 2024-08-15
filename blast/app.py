@@ -47,8 +47,6 @@ async def run_blast(request: Request):
         '-out', result_filename
     ]
 
-    logger.info(f"Running command: {' '.join(command)}")
-
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:

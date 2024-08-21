@@ -1,1 +1,2 @@
 pyeed @ git+https://github.com/PyEED/pyeed.git@main
+python-multipart

@@ -89,7 +89,6 @@ async def run_mmseqs(params: MMSeqsParams):
                 params.database, 
                 os.path.join(output_dir, "result"), 
                 result_m8_path, 
-                "--format-output", "query,target,evalue,raw,alnlen,identity,similarity"
             ]
             subprocess.run(convert_command, check=True)
             

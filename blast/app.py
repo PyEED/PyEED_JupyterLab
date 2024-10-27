@@ -48,7 +48,8 @@ async def run_blast(request: Request):
         '-evalue', request['evalue'],
         '-outfmt', request['outfmt'],
         '-num_threads', request['num_threads'],
-        '-out', result_filename
+        '-out', result_filename,
+        '-max_target_seqs', '10000'
     ]
 
     try:
@@ -66,4 +67,5 @@ async def run_blast(request: Request):
 
 if __name__ == '__main__':
     import uvicorn
+    
     uvicorn.run("app:app", host="0.0.0.0", port=6001, reload=True)

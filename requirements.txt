@@ -1,1 +1,4 @@
 pyeed @ git+https://github.com/PyEED/pyeed.git@main
+chromatopy @ git+https://github.com/FAIRChemistry/chromatopy.git
+MTPHandler @ git+https://github.com/FAIRChemistry/MTPHandler.git
+

@@ -10,8 +10,5 @@ COPY app.py /usr/local/bin/app.py
 # Set the working directory
 WORKDIR /usr/local/bin
 
-# Expose the port the server will run on
-EXPOSE 6001
-
 # Run the Python server script
 CMD ["python3", "app.py"]

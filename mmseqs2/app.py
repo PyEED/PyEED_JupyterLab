@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 import subprocess
 import os
@@ -8,16 +8,16 @@ import shutil
 app = FastAPI()
 
 # Define a model for the input parameters
-class MMSeqsParams(BaseModel):
-    query: str  # The query sequence
-    database: str
-    output: str  # The output directory
-    sensitivity: float = 7.5  # Sensitivity parameter for mmseqs2
-    threads: int = 4  # Number of threads to use
-    blast_format: bool = True  # Option to convert to BLAST+ format
+# class MMSeqsParams(BaseModel):
+#     query: str  # The query sequence
+#     database: str
+#     output: str  # The output directory
+#     sensitivity: float = 7.5  # Sensitivity parameter for mmseqs2
+#     threads: int = 4  # Number of threads to use
+#     blast_format: bool = True  # Option to convert to BLAST+ format
 
-# Dictionary to keep track of running jobs and results
-job_results = {}
+# # Dictionary to keep track of running jobs and results
+# job_results = {}
 
 def create_fastas_file_from_seq(seq, filename):
     with open(filename, 'w') as file:
@@ -45,34 +45,58 @@ def create_queryDB_from_seq(filename):
 async def read_root():
     return {"message": "Welcome to the MMSeqs2 API!"}
 
+@app.get("/help")
+def help():
+    try: 
+        results = subprocess.run(
+            ["mmseqs", "--help"],
+            capture_output=True,
+            text=True,
+        )
+        return {"help": results.stdout}
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"Command failed {e.stderr}")
+
 @app.post("/run_mmseqs")
-async def run_mmseqs(params: MMSeqsParams):
+async def run_mmseqs(request: Request):
+    
+    data = await request.json()
+    
+    print(f" Received request to run blastp with data: {data}"))
+    
+    query_filename =f"in.fasta"
+    result_filename = f"out.out"
+    
+    # Clear or create result file 
+    open(result_filename, 'w').close()
+    
+    # Create the fasta file from the query string
+    create_fastas_file_from_seq(data['query'], query_filename)
     # Create a unique job id
-    job_id = str(uuid4())
-    output_dir = f"/tmp/{job_id}"
+    # job_id = str(uuid4())
+    # output_dir = f"/tmp/{job_id}"
 
-    # Prepare the output directory
-    os.makedirs(output_dir, exist_ok=True)
+    # # Prepare the output directory
+    # os.makedirs(output_dir, exist_ok=True)
 
-    # Prepare paths
-    result_m8_path = os.path.join(output_dir, "result.m8")
-    result_tsv_path = os.path.join(output_dir, "result.tsv")
+    # # Prepare paths
+    # result_m8_path = os.path.join(output_dir, "result.m8")
+    # result_tsv_path = os.path.join(output_dir, "result.tsv")
 
-    # Create the FASTA file
-    path_query = os.path.join(output_dir, "query.fasta")
-    path_queryDB = path_query.replace('fasta', '') + ".db"
-    create_fastas_file_from_seq(params.query, path_query)
-    create_queryDB_from_seq(path_query)
+    # # Create the FASTA file
+    # path_query = os.path.join(output_dir, "query.fasta")
+    # path_queryDB = path_query.replace('fasta', '') + ".db"
+    # create_fastas_file_from_seq(params.query, path_query)
+    # create_queryDB_from_seq(path_query)
 
     # Run the mmseqs2 search command
     command = [
         "mmseqs", "search", 
-        path_queryDB, 
-        params.database, 
-        os.path.join(output_dir, "result"), 
-        output_dir, 
-        "--threads", str(params.threads), 
-        "--sensitivity", str(params.sensitivity)
+        query_filename, 
+        data['db'], 
+        result_filename,
+        "--threads", str(data['threads']), 
+        "--sensitivity", str(data['sensitivity'])
     ]
 
     try:
@@ -80,15 +104,14 @@ async def run_mmseqs(params: MMSeqsParams):
         subprocess.run(command, check=True)
 
         # Convert the results to BLAST+ format if requested
-        if params.blast_format:
+        if data['blast_format']:
             # mmseqs convertalis queryDB targetDB resultDB resultDB.m8
             # Convert to BLAST tabular format (BLAST m8 format)
             convert_command = [
                 "mmseqs", "convertalis", 
-                params.query, 
-                params.database, 
-                os.path.join(output_dir, "result"), 
-                result_m8_path, 
+                data['query'], 
+                data['database'], 
+                result_filename, 
             ]
             subprocess.run(convert_command, check=True)
             
@@ -130,4 +153,4 @@ async def get_results(job_id: str):
 if __name__ == '__main__':
     import uvicorn
     
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True)

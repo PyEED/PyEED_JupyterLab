@@ -13,7 +13,7 @@ RUN pip3 install fastapi uvicorn
 COPY app.py app.py
 
 # Expose the port on which FastAPI will run
-EXPOSE 8000
+EXPOSE 8001
 
 # Start the FastAPI server when the container starts
 CMD ["python3", "app.py"]

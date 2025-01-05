@@ -1,4 +1,4 @@
-sudo docker stop mmseq_docker
-sudo docker remove mmseq_docker
-sudo docker build --no-cache -t mmseq_docker .
-sudo docker run --name mmseq_docker --volume /mnt/databases:/app -p 8000:8000 mmseq_docker
+sudo docker stop mmseqs
+sudo docker remove mmseqs
+sudo docker build --no-cache -t mmseqs_docker .
+sudo docker run -d --name mmseqs -p 8001:8001 mmseqs_docker

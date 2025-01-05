@@ -10,7 +10,10 @@ RUN apt-get update && apt-get install -y python3 python3-pip
 RUN pip3 install fastapi uvicorn
 
 # Copy the FastAPI app to the container
-COPY app.py app.py
+COPY app.py /usr/local/bin/app.py
+
+# Set the working directory
+WORKDIR /usr/local/bin
 
 # Expose the port on which FastAPI will run
 EXPOSE 8001

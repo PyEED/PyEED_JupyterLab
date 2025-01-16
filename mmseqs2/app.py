@@ -1,133 +1,128 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
+from starlette.responses import FileResponse
+import logging
+
 import subprocess
 import os
-from uuid import uuid4
 import shutil
 
 app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info("FastAPI server is running...")
 
-# Define a model for the input parameters
-class MMSeqsParams(BaseModel):
-    query: str  # The query sequence
-    database: str
-    output: str  # The output directory
-    sensitivity: float = 7.5  # Sensitivity parameter for mmseqs2
-    threads: int = 4  # Number of threads to use
-    blast_format: bool = True  # Option to convert to BLAST+ format
 
-# Dictionary to keep track of running jobs and results
-job_results = {}
+def create_fastas_file_from_seq(query_string, filename):
+    """
+    Creates a FASTA file from a single string containing FASTA-formatted sequences.
 
-def create_fastas_file_from_seq(seq, filename):
-    with open(filename, 'w') as file:
-        file.write(f">seq\n{seq}\n")
+    Args:
+        query_string (str): String containing FASTA-formatted sequences.
+        filename (str): Path to the output FASTA file.
 
-def create_queryDB_from_seq(filename):
-    # this will create a db from a single sequence file
-    # the command is mmseqs createdb <input> <output>
-    # the output should be a file with the same name as the input but with the extension .db
+    Raises:
+        ValueError: If any sequence contains invalid characters.
+    """
+    def validate_sequence(sequence: str) -> bool:
+        """Validate that a sequence contains only valid amino acid characters."""
+        valid_chars = set("ACDEFGHIKLMNPQRSTVWY*X")  # Allow amino acids + stop codon (*), unknown (X)
+        sequence = sequence.upper().strip().replace("\n", "")  # Remove whitespace and newlines
+        return all(char in valid_chars for char in sequence)
 
-    command = [
-        "mmseqs", "createdb",
-        filename,
-        filename.replace('fasta', '') + ".db"
-    ]
+    # Split query string into lines
+    lines = query_string.strip().split("\n")
 
-    try:
-        subprocess.run(command, check=True)
+    # Parse headers and sequences
+    multifasta = []
+    current_header = None
+    current_sequence = []
+
+    for line in lines:
+        if line.startswith(">"):  # Header line
+            if current_header:  # Save the previous sequence
+                sequence = "".join(current_sequence)
+                if not validate_sequence(sequence):
+                    raise ValueError(f"Invalid characters in sequence under {current_header}")
+                multifasta.append(f"{current_header}\n{sequence}")
+            current_header = line.strip()  # Update header
+            current_sequence = []  # Reset sequence buffer
+        else:  # Sequence line
+            current_sequence.append(line.strip())
+
+    # Add the last sequence
+    if current_header and current_sequence:
+        sequence = "".join(current_sequence)
+        if not validate_sequence(sequence):
+            raise ValueError(f"Invalid characters in sequence under {current_header}")
+        multifasta.append(f"{current_header}\n{sequence}")
+
+    # Write to file
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write("\n".join(multifasta) + "\n")  # Ensure newline at end of file
+
+    print(f"FASTA file created: {filename}")
     
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=600, detail=str(e))
-    
-
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to the MMSeqs2 API!"}
 
-@app.post("/run_mmseqs")
-async def run_mmseqs(params: MMSeqsParams):
-    # Create a unique job id
-    job_id = str(uuid4())
-    output_dir = f"/tmp/{job_id}"
-
-    # Prepare the output directory
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Prepare paths
-    result_m8_path = os.path.join(output_dir, "result.m8")
-    result_tsv_path = os.path.join(output_dir, "result.tsv")
-
-    # Create the FASTA file
-    path_query = os.path.join(output_dir, "query.fasta")
-    path_queryDB = path_query.replace('fasta', '') + ".db"
-    create_fastas_file_from_seq(params.query, path_query)
-    create_queryDB_from_seq(path_query)
-
-    # Run the mmseqs2 search command
-    command = [
-        "mmseqs", "search", 
-        path_queryDB, 
-        params.database, 
-        os.path.join(output_dir, "result"), 
-        output_dir, 
-        "--threads", str(params.threads), 
-        "--sensitivity", str(params.sensitivity)
-    ]
-
-    try:
-        # Execute mmseqs search
-        subprocess.run(command, check=True)
-
-        # Convert the results to BLAST+ format if requested
-        if params.blast_format:
-            # mmseqs convertalis queryDB targetDB resultDB resultDB.m8
-            # Convert to BLAST tabular format (BLAST m8 format)
-            convert_command = [
-                "mmseqs", "convertalis", 
-                params.query, 
-                params.database, 
-                os.path.join(output_dir, "result"), 
-                result_m8_path, 
-            ]
-            subprocess.run(convert_command, check=True)
-            
-            # Store the result path for m8 format
-            job_results[job_id] = {
-                "status": "completed",
-                "result_path": result_m8_path
-            }
-        else:
-            # Store the result path for standard mmseqs2 output (TSV format)
-            job_results[job_id] = {
-                "status": "completed",
-                "result_path": result_tsv_path
-            }
-
-        return {"job_id": job_id}
+@app.get("/help")
+def help():
+    try: 
+        results = subprocess.run(
+            ["mmseqs", "-h"],
+            capture_output=True,
+            text=True,
+        )
+        return {"help": results.stdout}
     except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"mmseqs2 failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Command failed {e.stderr}")
 
-@app.get("/results/{job_id}")
-async def get_results(job_id: str):
-    # Check if the job exists
-    if job_id not in job_results:
-        raise HTTPException(status_code=404, detail="Job not found")
+@app.post("/easycluster")
+async def easycluster(request: Request):
+    data = await request.json()
+    logger.info(f"Received request data: {data}")
+    
+    BASE_DIR = "/app"
+    query_filename = os.path.join(BASE_DIR, "in.fasta")
+    result_filename = os.path.join(BASE_DIR, "output")
+    tmp_dir = os.path.join(BASE_DIR, "tmp")
 
-    # Get the result path
-    result = job_results[job_id]
+    os.makedirs(tmp_dir, exist_ok=True)
+    open(result_filename, 'w').close()  # Clear or create result file
 
-    # Read and return the result (assuming it's a text file you want to read and return)
-    result_file = result["result_path"]
-    if os.path.exists(result_file):
-        with open(result_file, "r") as file:
-            data = file.read()
-        return {"status": result["status"], "results": data}
-    else:
-        raise HTTPException(status_code=404, detail="Result file not found")
+    # Create the FASTA file from the query string
+    create_fastas_file_from_seq(data['query'], query_filename)
 
+    # Run the mmseqs2 command
+    command = [
+        "mmseqs", 
+        "easy-cluster", 
+        query_filename, 
+        result_filename, 
+        '--min-seq-id', str(data['min_seq_id']),
+        '-c', str(data['coverage']),
+        '--cov-mode', str(data['cov_mode']),
+        tmp_dir]
+    logger.info(f"Running command: {' '.join(command)}")
+    
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        logger.info(f"Command output: {result.stdout}")
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Command failed with return code {e.returncode}")
+        logger.error(f"STDOUT: {e.stdout}")
+        logger.error(f"STDERR: {e.stderr}")
+        raise HTTPException(status_code=500, detail=f"Command failed: {e.stderr}")
+
+    with open("/app/output_all_seqs.fasta", 'r') as file:
+        logger.info(f"Reading result file: /app/output_all_seqs.fasta")
+        result = file.read()
+        
+    return result
 
 if __name__ == '__main__':
     import uvicorn
     
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True)
